@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const puerto=3000;
 const mysql=require("mysql");
-const {validarCuenta,mostrar,cambiarStatus,mostrarReportes}=require("./consultas");
+const {validarCuenta,mostrar,cambiarStatus,mostrarReportes, modificarUser}=require("./consultas");
 const cors=require('cors');
 const jwt = require('jsonwebtoken');
 const SECRET_KEY = "tu_clave_secreta";
@@ -69,16 +69,20 @@ app.post('/login', (req, res) => {
     });
 });
 
-app.post("/mostrar", (req, res) => {
+app.post("/data/usuarios", (req, res) => {
     const cadena = req.body.cadena;
-    mostrar(connection, cadena, (result) => {
+    const numemp = req.body.numemp;
+    mostrar(connection, cadena, numemp, (result) => {
         res.send(result);
     });
 });
 
-app.post("/cstatus", (req, res) => {
-    const numemp = req.body.cadena;
-    
+app.post("/data/modificar", (req, res) => {
+    const numemp = req.body.numemp;
+    const nombre = req.body.nombre;
+    const turno = req.body.turno;
+    const estado = req.body.estado;
+
     if (!numemp) {
         return res.status(400).json({ 
             success: false, 
@@ -86,12 +90,8 @@ app.post("/cstatus", (req, res) => {
         });
     }
     
-    cambiarStatus(connection, numemp, (result) => {
-        if (result.success) {
-            res.status(200).json(result);
-        } else {
-            res.status(404).json(result);
-        }
+    modificarUser(connection, numemp, nombre, turno, estado, (result) => {
+        res.send(result);
     });
 });
 
@@ -101,37 +101,7 @@ app.get("/reportes", (req, res) => {
     });
 });
 
-
-
 app.listen(puerto, () => {
   console.log(`Servidor corriendo en el puerto `+puerto);
 });
-
-
-/*app.post("/nuevo",(req,res)=>{
-    let nombre=req.body.nombre;
-    let apellido=req.body.apellido;
-    let carrera=req.body.carrera;
-    let fecha=req.body.fecha;
-    let promedio=req.body.promedio;
-    let genero=req.body.genero;
-    let prepa=req.body.prepa;
-    nuevo(connection,{nombre:nombre,apellido:apellido,prepa:prepa,carrera:carrera,fecha:fecha,genero:genero,promedio:promedio},result=>{
-        res.send(result);
-    });
-})
-
-app.post("/eliminar",(req,res)=>{
-    let id=req.body.id;
-    eliminar(connection,{id:id},result=>{
-        res.send(result);
-    });
-})
-
-
-app.get("/mostrar",(req,res)=>{
-    mostrar(connection,result=>{
-        res.send(result);
-    })
-})*/
 

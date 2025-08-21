@@ -30,22 +30,41 @@ function validarCuenta(connection, numemp, contrasena, callback) {
     });
 }
 
-function mostrar(connection, cadena, callback) {
+function mostrar(connection, cadena, numemp, callback) {
+  let query = `
+    SELECT \`num_emp\`, \`nombre\`, \`turno\`, \`estado\`
+    FROM \`encargado\`
+    WHERE num_emp != ? 
+      AND (\`num_emp\` LIKE ? OR \`nombre\` LIKE ?)
+`;
+
+const searchParam = `%${cadena.trim()}%`; // Búsqueda parcial en ambos campos
+
+connection.query(query, [numemp, searchParam, searchParam], function(err, result) {
+    if (err) {
+        console.error("Error en la consulta:", err);
+        return callback([]); // Devuelve array vacío si hay error
+    }
+    //console.log("Resultados encontrados:", result.length);
+    callback(result);
+});
+}
+
+function modificarUser(connection, numemp, nombre, turno, estado, callback) {
     let query = `
-        SELECT \`num_emp\`, \`nombre\`, \`turno\`, \`estado\` 
-        FROM \`encargado\`
-        WHERE \`num_emp\` LIKE ? OR \`nombre\` LIKE ?
+        UPDATE \`encargado\`
+        SET \`nombre\` = ?, \`turno\` = ?, \`estado\` = ?
+        WHERE \`num_emp\` = ?
     `;
-    
-    const searchParam = `%${cadena.trim()}%`; // Búsqueda parcial en ambos campos
-    
-    connection.query(query, [searchParam, searchParam], function(err, result) {
+    connection.query(query, [nombre, turno, estado, numemp], (err, results) => {
         if (err) {
-            console.error("Error en la consulta:", err);
-            return callback([]); // Devuelve array vacío si hay error
+            console.error("Error al modificar usuario:", err);
+            return callback({ success: false, message: "Error al modificar usuario", error: err.message });
         }
-        //console.log("Resultados encontrados:", result.length);
-        callback(result);
+        if (results.affectedRows === 0) {
+            return callback({ success: false, message: "No se actualizó ningún registro" });
+        }
+        callback({ success: true, message: "Usuario modificado exitosamente" });
     });
 }
 
@@ -120,4 +139,4 @@ function cerrarReporte(conection,data,callback){
 }
 
 
-module.exports={validarCuenta, mostrar, cambiarStatus, registrosReportes, mostrarReportes, cerrarReporte};
+module.exports={validarCuenta, mostrar, cambiarStatus, registrosReportes, mostrarReportes, cerrarReporte, modificarUser};
