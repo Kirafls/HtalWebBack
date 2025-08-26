@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const puerto=3000;
 const mysql=require("mysql");
-const {validarCuenta,mostrar,cambiarStatus,mostrarReportes, modificarUser}=require("./consultas");
+const {validarCuenta,mostrar,cambiarStatus,mostrarReportes, modificarUser, registrosHistorialReportes ,cerrarReporte}=require("./consultas");
 const cors=require('cors');
 const jwt = require('jsonwebtoken');
 const SECRET_KEY = "tu_clave_secreta";
@@ -82,6 +82,7 @@ app.post("/data/modificar", (req, res) => {
     const nombre = req.body.nombre;
     const turno = req.body.turno;
     const estado = req.body.estado;
+    const tipo_cuenta = req.body.permiso;
 
     if (!numemp) {
         return res.status(400).json({ 
@@ -89,16 +90,71 @@ app.post("/data/modificar", (req, res) => {
             message: "Número de empleado no proporcionado" 
         });
     }
-    
-    modificarUser(connection, numemp, nombre, turno, estado, (result) => {
+
+    modificarUser(connection, numemp, nombre, turno, estado, tipo_cuenta, (result) => {
         res.send(result);
     });
 });
 
-app.get("/reportes", (req, res) => {
+app.get("/data/reportes", (req, res) => {
     mostrarReportes(connection, (result) => {
         res.send(result);
     });
+});
+
+app.get("/data/historialreportes", (req, res) => {
+    registrosHistorialReportes(connection, (result) => {
+        res.send(result);
+    });
+});
+
+app.post("/data/cerrarReporte", (req, res) => {
+    const { id_reporte, solucion, id_htal } = req.body;
+    console.log("Cerrando reporte:", id_htal , id_reporte, solucion);
+    if (!id_reporte || !solucion || !id_htal) {
+        console.log("Datos incompletos para cerrar reporte");
+        return res.status(400).json({ error: "ID de reporte, solución e ID de herramental son requeridos" });
+    }
+    cerrarReporte(connection, id_reporte, solucion, id_htal, (result) => {
+        res.send(result);
+    });
+});
+
+app.get("/data/reportesMensuales", (req, res) => {
+  const query = `
+    SELECT MONTH(fecha_cierre) AS mes, COUNT(*) AS total
+    FROM reportes
+    WHERE estado = 0
+    GROUP BY MONTH(fecha_cierre)
+    ORDER BY mes;
+  `;
+
+  connection.query(query, (err, results) => {
+    if (err) {
+      console.error("Error en consulta:", err);
+      return res.status(500).json({ error: "Error al obtener datos" });
+    }
+
+    // Devolver como JSON
+    res.json(results);
+  });
+});
+
+app.get('/data/htalxdia', (req, res) => {
+  const query = `
+    SELECT DATE(fecha_entrega) AS dia, COUNT(*) AS total
+    FROM registro
+    WHERE 1
+    GROUP BY DATE(fecha_entrega)
+    ORDER BY dia;
+  `;
+  connection.query(query, (err, results) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Error al obtener herramentales' });
+    }
+    res.json(results);
+  });
 });
 
 app.listen(puerto, () => {

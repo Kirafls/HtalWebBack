@@ -4,35 +4,39 @@ function validarCuenta(connection, numemp, contrasena, callback) {
     //console.log("Validando cuenta:", numemp);
     // Consulta que compara el hash SHA-256 de la contraseña proporcionada
     const query = `
-        SELECT * FROM \`encargado\` 
-        WHERE \`num_emp\` = ? 
-        AND \`contrasena\` = SHA2(?, 256)
-    `;
-    const values = [numemp, contrasena];
+    SELECT * FROM \`encargado\` 
+    WHERE \`num_emp\` = ? 
+      AND \`contrasena\` = SHA2(?, 256)
+      AND \`tipo_cuenta\` = 0
+      AND \`estado\` = 1
+`;
+const values = [numemp, contrasena];
+
+connection.query(query, values, (err, results) => {
+    if (err) {
+        console.error("Error en la consulta:", err);
+        return callback({ error: "Error en la consulta", detalles: err.message });
+    }
+
+    if (results.length === 0) {
+        // Puede ser por credenciales incorrectas o permisos insuficientes
+        return callback({ error: "Credenciales inválidas o no tienes los permisos necesarios" });
+    }
     
-    connection.query(query, values, (err, results) => {
-        if (err) {
-            console.error("Error en la consulta:", err);
-            return callback({ error: "Error en la consulta", detalles: err.message });
-        }
-        if (results.length === 0) {
-            return callback({ error: "Credenciales inválidas" });
-        }
-        
-        // Devuelve solo los datos necesarios, excluyendo la contraseña
-        const usuario = {
-            num_emp: results[0].num_emp,
-            nombre: results[0].nombre,
-            userLevel: results[0].tipo_cuenta,
-        };        
-        //console.log("Cuenta validada:", usuario.num_emp);
-        callback(null, usuario);
-    });
+    // Devuelve solo los datos necesarios, excluyendo la contraseña
+    const usuario = {
+        num_emp: results[0].num_emp,
+        nombre: results[0].nombre,
+        userLevel: results[0].tipo_cuenta,
+    };        
+
+    callback(null, usuario);
+});
 }
 
 function mostrar(connection, cadena, numemp, callback) {
   let query = `
-    SELECT \`num_emp\`, \`nombre\`, \`turno\`, \`estado\`
+    SELECT \`num_emp\`, \`nombre\`, \`turno\`, \`estado\`, \`tipo_cuenta\`
     FROM \`encargado\`
     WHERE num_emp != ? 
       AND (\`num_emp\` LIKE ? OR \`nombre\` LIKE ?)
@@ -50,13 +54,13 @@ connection.query(query, [numemp, searchParam, searchParam], function(err, result
 });
 }
 
-function modificarUser(connection, numemp, nombre, turno, estado, callback) {
+function modificarUser(connection, numemp, nombre, turno, estado, tipo_cuenta, callback) {
     let query = `
         UPDATE \`encargado\`
-        SET \`nombre\` = ?, \`turno\` = ?, \`estado\` = ?
+        SET \`nombre\` = ?, \`turno\` = ?, \`estado\` = ?, \`tipo_cuenta\` = ?
         WHERE \`num_emp\` = ?
     `;
-    connection.query(query, [nombre, turno, estado, numemp], (err, results) => {
+    connection.query(query, [nombre, turno, estado, tipo_cuenta, numemp], (err, results) => {
         if (err) {
             console.error("Error al modificar usuario:", err);
             return callback({ success: false, message: "Error al modificar usuario", error: err.message });
@@ -124,7 +128,7 @@ function mostrarReportes(connection, callback) {
 
 function registrosReportes(connection, callback) {
     const query = `
-        SELECT * FROM \`reportes\`
+        SELECT * FROM \`reportes\` where \`estado\` = 1
     `;
     connection.query(query, (err, results) => {
         if (err) {
@@ -135,8 +139,54 @@ function registrosReportes(connection, callback) {
     });
 }
 
-function cerrarReporte(conection,data,callback){
+function registrosHistorialReportes(connection, callback) {
+    const query = `
+        SELECT * FROM \`reportes\` where \`estado\` = 0
+    `;
+    connection.query(query, (err, results) => {
+        if (err) {
+            console.error("Error en la consulta:", err);
+            return callback([]);
+        }
+        callback(results);
+    });
 }
 
+function cerrarReporte(connection, id_reporte, solucion, id_herramental, callback) {
+let query = `
+        UPDATE \`reportes\`
+        SET \`estado\` = 0, \`solucion\` = ?, \`fecha_cierre\` = NOW()
+        WHERE \`id_reporte\` = ?
+    `;
 
-module.exports={validarCuenta, mostrar, cambiarStatus, registrosReportes, mostrarReportes, cerrarReporte, modificarUser};
+    connection.query(query, [solucion, id_reporte], (err, results) => {
+        if (err) {
+            console.error("Error al cerrar reporte:", err);
+            return callback({ success: false, message: "Error al cerrar reporte", error: err.message });
+        }
+        if (results.affectedRows === 0) {
+            return callback({ success: false, message: "No se actualizó ningún reporte" });
+        }
+
+        // Si el primer update fue exitoso → ejecutar el segundo
+        query = `
+            UPDATE \`heramental\`
+            SET \`reporte\` = 0
+            WHERE \`id_herramental\` = ?
+        `;
+        connection.query(query, [id_herramental], (err, results) => {
+            if (err) {
+                console.error("Error al actualizar herramental:", err);
+                return callback({ success: false, message: "Error al actualizar herramental", error: err.message });
+            }
+            if (results.affectedRows === 0) {
+                return callback({ success: false, message: "No se actualizó ningún herramental" });
+            }
+
+            // ✅ Solo aquí se responde exitosamente
+            callback({ success: true, message: "Reporte cerrado exitosamente" });
+        });
+    });
+}
+
+module.exports={validarCuenta, mostrar, cambiarStatus, registrosHistorialReportes, mostrarReportes, cerrarReporte, modificarUser};
