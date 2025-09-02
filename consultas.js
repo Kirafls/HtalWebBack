@@ -189,4 +189,22 @@ let query = `
     });
 }
 
-module.exports={validarCuenta, mostrar, cambiarStatus, registrosHistorialReportes, mostrarReportes, cerrarReporte, modificarUser};
+function cambiarContrasena(connection, numemp, nuevaContrasena, callback) {
+    const query = `
+        UPDATE \`encargado\`
+        SET \`contrasena\` = SHA2(?, 256)
+        WHERE \`num_emp\` = ?
+    `;
+    connection.query(query, [nuevaContrasena, numemp], (err, results) => {
+        if (err) {
+            console.error("Error al cambiar contraseña:", err);
+            return callback({ success: false, message: "Error al cambiar contraseña", error: err.message });
+        }
+        if (results.affectedRows === 0) {
+            return callback({ success: false, message: "No se actualizó ningún registro" });
+        }
+        callback({ success: true, message: "Contraseña cambiada exitosamente" });
+    });
+}
+
+module.exports={validarCuenta, mostrar, cambiarStatus, registrosHistorialReportes, mostrarReportes, cerrarReporte, modificarUser, cambiarContrasena};

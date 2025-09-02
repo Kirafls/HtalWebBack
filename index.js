@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const puerto=3000;
 const mysql=require("mysql");
-const {validarCuenta,mostrar,cambiarStatus,mostrarReportes, modificarUser, registrosHistorialReportes ,cerrarReporte}=require("./consultas");
+const {validarCuenta,mostrar,cambiarStatus,mostrarReportes, modificarUser, registrosHistorialReportes ,cerrarReporte, cambiarContrasena}=require("./consultas");
 const cors=require('cors');
 const jwt = require('jsonwebtoken');
 const SECRET_KEY = "tu_clave_secreta";
@@ -155,6 +155,58 @@ app.get('/data/htalxdia', (req, res) => {
     }
     res.json(results);
   });
+});
+
+app.get("/data/masusados", (req, res) => {
+  const query = `
+    SELECT 
+    id_htal, 
+    SUM(TIMESTAMPDIFF(HOUR, fecha_prestamo, fecha_entrega)) AS horas_uso
+    FROM registro
+    WHERE fecha_entrega IS NOT NULL -- para evitar errores si aún no se entregó
+    GROUP BY id_htal
+    ORDER BY horas_uso DESC
+    LIMIT 25;
+  `;
+  connection.query(query, (err, results) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Error al obtener datos' });
+    }
+    res.json(results);
+  });
+});
+
+app.get("/api/saludo", (req, res) => {
+  res.json({ mensaje: "Hola desde Node JS, inicio de proyecto y comunicacion con el back 🚀" });
+});
+//Aplicacion web
+app.post("/data/cambiarStatus", (req, res) => {
+    const numemp = req.body.numemp;
+    if (!numemp) {
+        return res.status(400).json({ 
+            success: false, 
+            message: "Número de empleado no proporcionado" 
+        });
+    }
+
+    cambiarStatus(connection, numemp, (result) => {
+        res.send(result);
+    });
+});
+
+app.post("/data/cambioc", (req, res) => {
+    const { numemp, nuevaContrasena } = req.body;
+    if (!numemp || !nuevaContrasena) {
+        return res.status(400).json({
+            success: false,
+            message: "Número de empleado y nueva contraseña son requeridos"
+        });
+    }
+
+    cambiarContrasena(connection, numemp, nuevaContrasena, (result) => {
+        res.send(result);
+    });
 });
 
 app.listen(puerto, () => {
