@@ -22,7 +22,7 @@ const connection =mysql.createConnection({
 
 connection.connect((err)=>{
     if(err) throw err;
-    console.log("Coneccion con la base de datos");
+    //console.log("Conectado a la base de datos");
 })
 app.get("/",(req,res)=>{
     res.send("Servidor corriendo");
@@ -35,15 +35,15 @@ app.post('/login', (req, res) => {
         return res.status(400).json({ error: "Número de empleado y contraseña son requeridos" });
     }
 
-    console.log("Intento de login para:", numemp);
+    //console.log("Intento de login para:", numemp);
 
     validarCuenta(connection, numemp, contrasena, (err, usuario) => {
         if (err) {
-            console.error("Error en autenticación:", err.error);
+            //console.error("Error en autenticación:", err.error);
             return res.status(401).json(err); // 401 Unauthorized
         }
 
-        console.log("Login exitoso para:", usuario);
+        //console.log("Login exitoso para:", usuario);
 
         // ✅ Generar JWT con datos básicos del usuario
         const token = jwt.sign(
@@ -64,6 +64,7 @@ app.post('/login', (req, res) => {
                 num_emp: usuario.num_emp,
                 nombre: usuario.nombre,
                 userLevel: usuario.userLevel
+                
             }
         });
     });
@@ -110,9 +111,9 @@ app.get("/data/historialreportes", (req, res) => {
 
 app.post("/data/cerrarReporte", (req, res) => {
     const { id_reporte, solucion, id_htal } = req.body;
-    console.log("Cerrando reporte:", id_htal , id_reporte, solucion);
+    //console.log("Cerrando reporte:", id_htal , id_reporte, solucion);
     if (!id_reporte || !solucion || !id_htal) {
-        console.log("Datos incompletos para cerrar reporte");
+        //console.log("Datos incompletos para cerrar reporte");
         return res.status(400).json({ error: "ID de reporte, solución e ID de herramental son requeridos" });
     }
     cerrarReporte(connection, id_reporte, solucion, id_htal, (result) => {
@@ -131,7 +132,7 @@ app.get("/data/reportesMensuales", (req, res) => {
 
   connection.query(query, (err, results) => {
     if (err) {
-      console.error("Error en consulta:", err);
+      //console.error("Error en consulta:", err);
       return res.status(500).json({ error: "Error al obtener datos" });
     }
 
@@ -150,7 +151,7 @@ app.get('/data/htalxdia', (req, res) => {
   `;
   connection.query(query, (err, results) => {
     if (err) {
-      console.error(err);
+      //console.error(err);
       return res.status(500).json({ error: 'Error al obtener herramentales' });
     }
     res.json(results);
@@ -170,7 +171,7 @@ app.get("/data/masusados", (req, res) => {
   `;
   connection.query(query, (err, results) => {
     if (err) {
-      console.error(err);
+      //console.error(err);
       return res.status(500).json({ error: 'Error al obtener datos' });
     }
     res.json(results);
