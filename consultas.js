@@ -78,9 +78,7 @@ function cambiarStatus(connection, numemp, callback) {
     if (!numemp) {
         return callback({ success: false, message: "Número de empleado inválido" });
     }
-
     //console.log("Cambiando estado para el usuario:", numemp);
-
     // Consulta directa
     connection.query(
         "SELECT estado FROM encargado WHERE num_emp = ?",
@@ -97,9 +95,7 @@ function cambiarStatus(connection, numemp, callback) {
 
             const estadoActual = Number(result[0].estado);
             const nuevoEstado = estadoActual === 1 ? 0 : 1;
-
             //console.log(`Estado actual: ${estadoActual}, Nuevo estado: ${nuevoEstado}`);
-
             connection.query(
                 "UPDATE encargado SET estado = ? WHERE num_emp = ?",
                 [nuevoEstado, numemp],
