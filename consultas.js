@@ -1,3 +1,4 @@
+//Funciones de consulta centrales
 const mysql =require("mysql");
 //Es la funcion que valida si el usuario y la contraseña son correctos
 //Regresa un objeto con los datos del usuario si es correcto, o un mensaje de error si no lo es

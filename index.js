@@ -8,7 +8,7 @@ const jwt = require('jsonwebtoken');
 const SECRET_KEY = "tu_clave_secreta";
 const bodyparse=require("body-parser");
 
-
+//El proyecto es solo ilustrativo y no debe usarse en produccion sin antes corroborar requisitos de seguridad.
 app.use(cors());
 app.use(bodyparse.json());
 app.use(bodyparse.urlencoded({extended:false}));
